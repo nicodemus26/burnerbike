@@ -1,0 +1,12 @@
+[Unit]
+Description=Fadecandy server
+After=multi-user.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=2
+ExecStart=/home/nicodemus/src/fadecandy/server/fcserver /home/nicodemus/fcserver.config
+
+[Install]
+WantedBy=multi-user.target
