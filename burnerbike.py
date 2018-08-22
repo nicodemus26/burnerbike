@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 import time
+import math
 import sys
 import opc
 import RPi.GPIO as GPIO
+import hsluv
+from opensimplex import OpenSimplex
 BRIGHTNESS_BUTTON=23
 CYCLE_BUTTON=24
 
 client = opc.Client('localhost:7890')
-brightness=256
-cycle=0
 
 
 # Coordinates of lights in 3-space, with origin at bottom rear of bike.
@@ -53,24 +54,40 @@ max_y = max(y for x,y,z in lightmap)
 max_z = max(z for x,y,z in lightmap)
 
 
-def brightness_pressed(val):
-    global brightness
-    brightness = brightness * 4
-    if brightness > 256:
-        brightness = 1
-    print("brightness to %d with %s" % (brightness,val))
+simplex_a = OpenSimplex(seed=0)
+simplex_b = OpenSimplex(seed=1)
+simplex_c = OpenSimplex(seed=2)
+simplex_scale_x = 0.02
+simplex_scale_y = 0.02
+simplex_scale_z = 0.02
+def simplex_hsl_as_rgb(x, y, z, w):
+    x = x * simplex_scale_x
+    y = y * simplex_scale_y
+    z = z * simplex_scale_z
+    h = (simplex_a.noise4d(x, y, z, w)+1)*360
+    s = 100-(simplex_b.noise4d(x, y, z, w)+1)*5
+    l = 50+(simplex_c.noise4d(x, y, z, w))*5
+    r, g, b = hsluv.hsluv_to_rgb([h, s, l])
+    return (r*256, g*256, b*256)
 
-def cycle_pressed(val):
-    global cycle
-    cycle = cycle + 1
-    if cycle > 2:
-        cycle = 0
-    print("cycled to %d with %s" % (cycle,val))
+def simplex_rgb_as_rgb(x, y, z, w):
+    x = x * simplex_scale_x
+    y = y * simplex_scale_y
+    z = z * simplex_scale_z
+    r = (simplex_a.noise4d(x, y, z, w)+1)*128
+    g = (simplex_b.noise4d(x, y, z, w)+1)*128
+    b = (simplex_c.noise4d(x, y, z, w)+1)*128
+    return (r, g, b)
 
-GPIO.setmode(GPIO.BCM)
-GPIO.setup([BRIGHTNESS_BUTTON, CYCLE_BUTTON],GPIO.IN)
-GPIO.add_event_detect(BRIGHTNESS_BUTTON, GPIO.RISING, callback=brightness_pressed, bouncetime=50)
-GPIO.add_event_detect(CYCLE_BUTTON, GPIO.RISING, callback=cycle_pressed, bouncetime=50)
+def simplex_hsl():
+    #time.sleep(1/60.)
+    now = time.time()
+    return [simplex_hsl_as_rgb(x, y, z, now*.75) for x,y,z in lightmap]
+
+def simplex_rgb():
+    time.sleep(1/60.)
+    now = time.time()
+    return [simplex_rgb_as_rgb(x, y, z, now*.75) for x,y,z in lightmap]
 
 def map_assist():
     time.sleep(1)
@@ -79,39 +96,81 @@ def map_assist():
     return pixels
 
 def strand_identify():
-    time.sleep(1)
+    time.sleep(.5)
     from random import randint
     pixels = ([(255,0,0)]*64)+([(0,255,0)]*64)+([(0,0,255)]*64)
     return pixels
 
 def random_color():
-    time.sleep(1)
+    time.sleep(2)
     from random import randint
     pixels = []
     for x in range(512):
-        pixels.append([
-            randint(0, 256),
-            randint(0, 256),
-            randint(0, 256),
-        ])
+        r, g, b = hsluv.hsluv_to_rgb([randint(0,360), randint(50,101), randint(40,60)])
+        pixels.append((r*256, g*256, b*256))
+    return pixels
+
+def ripple():
+    now = time.time()
+    a = (now*3.14*6)%360.
+    pixels = []
+    center_x = max_x/2
+    center_y = max_y/2
+    center_z = max_z/2
+    for x,y,z in lightmap:
+        dist = math.sqrt(
+            (max_x-x)**2 +
+            (max_y-y)**2 +
+            (max_z-(z+now*2))**2)
+        off = (math.sin(dist*2/3.14)**4)
+        h = a+60*off
+        r,g,b = [x * 256. for x in hsluv.hsluv_to_rgb([h, 100, 50])]
+        pixels.append((r,g,b))
+
     return pixels
 
 def blank():
-    time.sleep(1)
+    time.sleep(.5)
     from random import randint
     pixels = []
     for x in range(512):
         pixels.append([0,0,0])
     return pixels
 
+fns = [
+        simplex_hsl, # 0
+        random_color, # 1
+        ripple, # 2
+        strand_identify, # 3
+        blank, # 4
+]
+
+brightness=256.
+cycle=2
+
+def brightness_pressed(val):
+    global brightness
+    brightness = brightness /4.
+    if brightness < 4:
+        brightness = 256.
+    print("brightness to %d with %s" % (brightness,val))
+
+def cycle_pressed(val):
+    global cycle
+    global fns
+    cycle = cycle + 1
+    if cycle == len(fns):
+        cycle = 0
+    print("cycled to %s" % (fns[cycle].__name__))
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup([BRIGHTNESS_BUTTON, CYCLE_BUTTON],GPIO.IN)
+GPIO.add_event_detect(BRIGHTNESS_BUTTON, GPIO.RISING, callback=brightness_pressed, bouncetime=200)
+GPIO.add_event_detect(CYCLE_BUTTON, GPIO.RISING, callback=cycle_pressed, bouncetime=200)
+
+
 while True:
-    fn = random_color
-    if cycle == 0:
-        fn = map_assist
-    elif cycle == 1:
-        fn = blank
-    if cycle == 2:
-        fn = random_color
-    if cycle == 3:
-        fn = strand_identify
-    client.put_pixels([[((r*brightness)/256.),((g*brightness)/256.),((b*brightness)/256.)] for r,g,b in fn()])
+    fn = fns[cycle]
+    dimmed = [[((r*brightness)/256.),((g*brightness)/256.),((b*brightness)/256.)] for r,g,b in fn()]
+    clamped = [(int(r), int(g), int(b)) for r,g,b in dimmed]
+    client.put_pixels(clamped)
