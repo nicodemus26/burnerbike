@@ -112,7 +112,7 @@ def random_color():
 
 def ripple():
     now = time.time()
-    a = (now*3.14*6)%360.
+    a = (math.sin(-now*6.28)*6+(now*3.14*2))%360.
     pixels = []
     center_x = max_x/2
     center_y = max_y/2
@@ -121,10 +121,13 @@ def ripple():
         dist = math.sqrt(
             (max_x-x)**2 +
             (max_y-y)**2 +
-            (max_z-(z+now*2))**2)
-        off = (math.sin(dist*2/3.14)**4)
-        h = a+60*off
-        r,g,b = [x * 256. for x in hsluv.hsluv_to_rgb([h, 100, 50])]
+            (max_z-z)**2)
+        off_a = (math.sin((dist+now*3.14)/3.14)**4)
+        off_b = (math.sin((dist/10+now*3.14)/3.14)**4)
+        h = a+60*off_a-20*off_b+30*(math.sin(-now))
+        s = 99 + math.sin(now*3.14/5)*1
+        l = 50 + math.sin(now*3.14/15)*5
+        r,g,b = [x * 256. for x in hsluv.hsluv_to_rgb([h, s, l])]
         pixels.append((r,g,b))
 
     return pixels
@@ -139,14 +142,14 @@ def blank():
 
 fns = [
         simplex_hsl, # 0
-        random_color, # 1
-        ripple, # 2
+        ripple, # 1
+        random_color, # 2
         strand_identify, # 3
         blank, # 4
 ]
 
 brightness=256.
-cycle=2
+cycle=0
 
 def brightness_pressed(val):
     global brightness
