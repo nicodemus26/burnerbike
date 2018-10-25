@@ -27,32 +27,24 @@ def interp_lights(start, end, count):
         current = (current[0]+increment[0], current[1]+increment[1], current[2]+increment[2])
     return res
         
-# Left top
-lt = []
-lt = lt + interp_lights((8, 15, 12), (8, 14.5, 13), 3)
-lt = lt + interp_lights((8, 14.5, 13), (1, 30, 31), 34)
-lt = lt + interp_lights((1, 30, 31),  (1, 30, 52.5), 30)
+# Top to bottom: 3.75"
+# Left to right: 12.20"
+lightmap = []
+for i in range(6):
+    for j in range(20):
+        x = -1.85+j*.75
+        y = -6.1+i*.61
+        lightmap.append((x,y,0))
 
-# Bottom
-bot = []
-bot = bot + interp_lights((0,24,25), (0, 20, 28), 7)
-bot = bot + interp_lights((0, 20, 28), (0, 15.5, 29), 8)
-bot = bot + interp_lights((0, 15.5, 29), (0, 8.5, 29), 11)
-bot = bot + interp_lights((0, 8.5, 29), (0, 8.5, 31.75), 5)
-bot = bot + interp_lights((0, 8.5, 31.75), (0, 27.5, 51.75), 38)
-
-# Right top
-rt = [(8-x, y, z) for x, y, z in lt]
-
-lightmap = lt+bot+rt
 min_x = min(x for x,y,z in lightmap)
 min_y = min(y for x,y,z in lightmap)
 min_z = min(z for x,y,z in lightmap)
-lightmap = [(x-min_x, y-min_y, z-min_z) for x,y,z in lightmap] # re-origin on extreme
 max_x = max(x for x,y,z in lightmap)
 max_y = max(y for x,y,z in lightmap)
 max_z = max(z for x,y,z in lightmap)
 
+for line in range(6):
+    print(("".join("{}\t"*20)).format(*lightmap[line*20:(line+1)*20]))
 
 simplex_a = OpenSimplex(seed=0)
 simplex_b = OpenSimplex(seed=1)
@@ -114,9 +106,9 @@ def ripple():
     now = time.time()
     a = (math.sin(-now*6.28)*6+(now*3.14*2))%360.
     pixels = []
-    center_x = max_x/2
-    center_y = max_y/2
-    center_z = max_z/2
+    center_x = 0
+    center_y = 0
+    center_z = 0
     for x,y,z in lightmap:
         dist = math.sqrt(
             (max_x-x)**2 +
