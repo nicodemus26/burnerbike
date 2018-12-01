@@ -75,12 +75,12 @@ def simplex_rgb_as_rgb(x, y, z, w):
     b = (simplex_c.noise4d(x, y, z, w)+1)*128
     return (r, g, b)
 
-def simplex_hsl():
+def simplex_hsl_a():
     #time.sleep(1/60.)
     now = time.time()
     return [simplex_hsl_as_rgb(x, y, z, now*.75) for x,y,z in lightmap]
 
-def random_color():
+def simplex_hsl_b():
     #time.sleep(1/60.)
     now = time.time()
     return [simplex_hsl_as_rgb(x*10, y*10, z*10, now*.25) for x,y,z in lightmap]
@@ -106,11 +106,11 @@ def strand_identify():
     return pixels
 
 def random_color_per_pixel():
-    time.sleep(.5)
+    time.sleep(.1)
     from random import randint
     pixels = []
     for x in range(20*6):
-        r, g, b = hsluv.hsluv_to_rgb([randint(0,360), randint(80,101), randint(45,55)])
+        r, g, b = hsluv.hsluv_to_rgb([randint(0,360), 100, randint(20,80)])
         pixels.append((r*256, g*256, b*256))
     return pixels
 
@@ -142,10 +142,11 @@ def blank():
 
 fns = [
         ripple, # 0
-        simplex_hsl, # 1
-        random_color, # 2
-        strand_identify, # 3
-        blank, # 4
+        simplex_hsl_a, # 1
+        simplex_hsl_b, # 2
+        random_color_per_pixel, # 3
+        strand_identify, # 4
+        blank, # 5
 ]
 
 brightness=256.
@@ -176,14 +177,16 @@ import random
 cycle_time_offset = random.randint(0, 900)
 while True:
     now = time.time()
-    cycle_time = (now+cycle_time_offset)%900
-    if cycle_time < 300:
+    cycle_time = (now+cycle_time_offset)%300
+    if cycle_time < 120:
         cycle = 0
-    else:
-        if cycle_time % 90 < 30:
+    elif cycle_time < 240:
+        if cycle_time % 60 < 20:
             cycle = 1
         else:
             cycle = 2
+    else:
+        cycle = 3
     fn = fns[cycle]
     dimmed = [[((r*brightness)/256.),((g*brightness)/256.),((b*brightness)/256.)] for r,g,b in fn()]
     clamped = [(int(r), int(g), int(b)) for r,g,b in dimmed]
