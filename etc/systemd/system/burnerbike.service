@@ -7,7 +7,7 @@ Requires=fcserver.service
 Type=simple
 Restart=always
 RestartSec=2
-ExecStart=/home/nicodemus/src/burnerbike/env/bin/python /home/nicodemus/src/burnerbike/burnerbike.py
+ExecStart=/home/pi/burnerbike/env/bin/python /home/pi/burnerbike/burnerbike.py
 
 [Install]
 WantedBy=multi-user.target
