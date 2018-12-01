@@ -32,8 +32,11 @@ def interp_lights(start, end, count):
 lightmap = []
 for i in range(6):
     for j in range(20):
-        x = -1.85+j*.75
-        y = -6.1+i*.61
+        #x = (j-10.5)*0.657894737 # 12.5/19
+        #y = (i-3.5)*0.76 # 3.8/5
+        scale = 2.
+        x = -scale+j*(scale*2./19)
+        y = -scale+i*(scale*2./5)
         lightmap.append((x,y,0))
 
 min_x = min(x for x,y,z in lightmap)
@@ -44,7 +47,8 @@ max_y = max(y for x,y,z in lightmap)
 max_z = max(z for x,y,z in lightmap)
 
 for line in range(6):
-    print(("".join("{}\t"*20)).format(*lightmap[line*20:(line+1)*20]))
+    vals = ["{: .1f},{: .1f}".format(x, y) for x,y,z in lightmap[line*20:(line+1)*20]]
+    print(("".join("{} "*20)).format(*vals))
 
 simplex_a = OpenSimplex(seed=0)
 simplex_b = OpenSimplex(seed=1)
@@ -106,17 +110,13 @@ def random_color():
     return pixels
 
 def ripple():
-    now = time.time()
-    a = (math.sin(-now*6.28)*6+(now*3.14*2))%360.
+    now = -time.time()
+    a = (math.sin(-now*6.28)*6+(now*3.14*2))%360.+math.sin(.25*(now+2)*3.14)
     pixels = []
-    center_x = 0
-    center_y = 0
-    center_z = 0
+    center_x = min_x+((max_x-min_x)/2)
+    center_y = min_y+((max_y-min_y)/2)
     for x,y,z in lightmap:
-        dist = math.sqrt(
-            (max_x-x)**2 +
-            (max_y-y)**2 +
-            (max_z-z)**2)
+        dist = math.sqrt((x-center_y)**2 + (y-center_y)**2)
         off_a = (math.sin((dist+now*3.14)/3.14)**4)
         off_b = (math.sin((dist/10+now*3.14)/3.14)**4)
         h = a+60*off_a-20*off_b+30*(math.sin(-now))
@@ -136,10 +136,10 @@ def blank():
     return pixels
 
 fns = [
-        strand_identify, # 3
-        simplex_hsl, # 0
-        ripple, # 1
+        ripple, # 0
+        simplex_hsl, # 1
         random_color, # 2
+        strand_identify, # 3
         blank, # 4
 ]
 
