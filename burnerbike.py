@@ -89,8 +89,11 @@ def map_assist():
 
 def strand_identify():
     time.sleep(.5)
-    from random import randint
-    pixels = ([(255,0,0)]*64)+([(0,255,0)]*64)+([(0,0,255)]*64)
+    rgb = [(255,0,0),(0,255,0),(0,0,255)]
+    rgbrgbrgbr = (rgb*4)[:10]
+    pixels = []
+    for i in range(6):
+        pixels = pixels+rgbrgbrgbr+([(0,0,0)]*i)+[(128,128,128),(256,256,256)]+([(0,0,0)]*(8-i))
     return pixels
 
 def random_color():
@@ -133,10 +136,10 @@ def blank():
     return pixels
 
 fns = [
+        strand_identify, # 3
         simplex_hsl, # 0
         ripple, # 1
         random_color, # 2
-        strand_identify, # 3
         blank, # 4
 ]
 
