@@ -80,6 +80,11 @@ def simplex_hsl():
     now = time.time()
     return [simplex_hsl_as_rgb(x, y, z, now*.75) for x,y,z in lightmap]
 
+def random_color():
+    #time.sleep(1/60.)
+    now = time.time()
+    return [simplex_hsl_as_rgb(x*10, y*10, z*10, now*.25) for x,y,z in lightmap]
+
 def simplex_rgb():
     time.sleep(1/60.)
     now = time.time()
@@ -100,12 +105,12 @@ def strand_identify():
         pixels = pixels+rgbrgbrgbr+([(0,0,0)]*i)+[(128,128,128),(256,256,256)]+([(0,0,0)]*(8-i))
     return pixels
 
-def random_color():
-    time.sleep(2)
+def random_color_per_pixel():
+    time.sleep(.5)
     from random import randint
     pixels = []
-    for x in range(512):
-        r, g, b = hsluv.hsluv_to_rgb([randint(0,360), randint(50,101), randint(40,60)])
+    for x in range(20*6):
+        r, g, b = hsluv.hsluv_to_rgb([randint(0,360), randint(80,101), randint(45,55)])
         pixels.append((r*256, g*256, b*256))
     return pixels
 
@@ -167,7 +172,18 @@ GPIO.add_event_detect(BRIGHTNESS_BUTTON, GPIO.RISING, callback=brightness_presse
 GPIO.add_event_detect(CYCLE_BUTTON, GPIO.RISING, callback=cycle_pressed, bouncetime=200)
 
 
+import random
+cycle_time_offset = random.randint(0, 900)
 while True:
+    now = time.time()
+    cycle_time = (now+cycle_time_offset)%900
+    if cycle_time < 300:
+        cycle = 0
+    else:
+        if cycle_time % 90 < 30:
+            cycle = 1
+        else:
+            cycle = 2
     fn = fns[cycle]
     dimmed = [[((r*brightness)/256.),((g*brightness)/256.),((b*brightness)/256.)] for r,g,b in fn()]
     clamped = [(int(r), int(g), int(b)) for r,g,b in dimmed]
