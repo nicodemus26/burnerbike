@@ -48,7 +48,7 @@ max_z = max(z for x,y,z in lightmap)
 
 for line in range(6):
     vals = ["{: .1f},{: .1f}".format(x, y) for x,y,z in lightmap[line*20:(line+1)*20]]
-    print(("".join("{} "*20)).format(*vals))
+    #print(("".join("{} "*20)).format(*vals))
 
 simplex_a = OpenSimplex(seed=0)
 simplex_b = OpenSimplex(seed=1)
@@ -156,7 +156,7 @@ def brightness_pressed(val):
     brightness = brightness /4.
     if brightness < 4:
         brightness = 256.
-    print("brightness to %d with %s" % (brightness,val))
+    #print("brightness to %d with %s" % (brightness,val))
 
 def cycle_pressed(val):
     global cycle
@@ -164,7 +164,7 @@ def cycle_pressed(val):
     cycle = cycle + 1
     if cycle == len(fns):
         cycle = 0
-    print("cycled to %s" % (fns[cycle].__name__))
+    #print("cycled to %s" % (fns[cycle].__name__))
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup([BRIGHTNESS_BUTTON, CYCLE_BUTTON],GPIO.IN)
